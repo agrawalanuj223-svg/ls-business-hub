@@ -1,0 +1,1736 @@
+You are the Lead Software Architect, Senior Full-Stack Engineer, Product Manager, Security Engineer, Database Architect, QA Engineer, and DevOps Engineer responsible for designing and building a production-ready internal business platform.
+
+PROJECT NAME:
+L&S BUSINESS HUB
+
+CLIENT:
+LIFT & SHIFT and its sister companies.
+
+IMPORTANT:
+This is NOT a generic invoice-tracking website.
+This is a real business management platform that will eventually handle confidential company documents, invoices, payments, receivables, service orders, client information, and financial records.
+
+Therefore, prioritize:
+1. Data security
+2. Company/tenant isolation
+3. Authorization
+4. Document security
+5. Data integrity
+6. Auditability
+7. Reliability
+8. Maintainability
+9. Scalability
+10. Clean and professional UX
+
+Do not sacrifice architecture or security for speed.
+
+==================================================
+1. BUSINESS CONTEXT
+==================================================
+
+LIFT & SHIFT is a service provider and operates along with sister companies.
+
+The business needs a centralized system where authorized employees can:
+
+- Manage multiple companies
+- Add clients
+- Add vendors
+- Manage service orders
+- Track recurring/monthly billing
+- Receive reminders to upload monthly bills
+- Upload invoices
+- Record payments
+- Upload payment proofs/receipts
+- Automatically calculate outstanding amounts
+- Track overdue payments
+- Generate receivables and aging reports
+- Store service orders, invoices, contracts, receipts and payment proofs securely
+- Maintain an audit trail
+- Share selected information/documents with clients
+
+The system must also have an external Client Portal.
+
+Clients should be able to securely log in and see ONLY information belonging to their own organization that LIFT & SHIFT has authorized them to see.
+
+==================================================
+2. PRODUCT STRUCTURE
+==================================================
+
+Build two separate experiences within one secure application:
+
+A. INTERNAL BUSINESS PORTAL
+
+Used by:
+- Group administrators
+- Company administrators
+- Finance employees
+- Staff
+- View-only employees
+
+B. CLIENT PORTAL
+
+Used by:
+- LIFT & SHIFT clients
+- Authorized users belonging to those client organizations
+
+These two experiences must be separated at the authorization layer.
+
+Do NOT simply hide internal pages from clients using frontend conditionals.
+
+==================================================
+3. MULTI-COMPANY / MULTI-TENANT ARCHITECTURE
+==================================================
+
+The system must support:
+
+- LIFT & SHIFT
+- Sister Company 1
+- Sister Company 2
+- Sister Company 3
+- Future companies
+
+Do NOT hard-code company names.
+
+Create a proper companies table.
+
+Every company-owned business record must be associated with a company_id.
+
+Examples:
+
+Company
+→ Business Partner
+→ Service Order
+→ Billing Schedule
+→ Invoice
+→ Payment
+→ Document
+→ Reminder
+
+Company isolation is critical.
+
+A user assigned to Company A must not be able to access Company B's records unless they have explicit permission.
+
+A client belonging to Client Organization A must NEVER be able to access Client Organization B's information.
+
+==================================================
+4. RECOMMENDED TECHNOLOGY
+==================================================
+
+Unless you identify a strong technical reason otherwise, use:
+
+Frontend:
+- Next.js
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+
+Backend:
+- Next.js server-side APIs / server actions or a clean backend service layer
+
+Database:
+- PostgreSQL
+
+Authentication:
+- Supabase Auth
+- Google OAuth
+
+Storage:
+- Supabase Storage
+- Private buckets
+
+Security:
+- PostgreSQL Row Level Security
+- Server-side authorization
+- Role-based access control
+- Company/tenant isolation
+
+Validation:
+- Zod or equivalent strongly typed validation
+
+Charts:
+- Recharts or equivalent
+
+Deployment:
+- Vercel for application
+- Supabase for database/auth/storage
+
+If you recommend a different architecture, explain why BEFORE implementing it.
+
+Do not introduce unnecessary infrastructure.
+
+==================================================
+5. FIRST TASK — DO NOT START CODING IMMEDIATELY
+==================================================
+
+Before building the UI, analyze the requirements and create:
+
+ARCHITECTURE.md
+
+It must include:
+
+1. System architecture
+2. Technology stack
+3. Database architecture
+4. Complete entity relationship model
+5. Authentication architecture
+6. Authorization architecture
+7. Internal roles
+8. Client roles
+9. Multi-company isolation strategy
+10. RLS strategy
+11. Storage architecture
+12. Document access model
+13. Audit logging
+14. Reminder architecture
+15. API/server architecture
+16. Security threat model
+17. Backup strategy
+18. Disaster recovery considerations
+19. Deployment architecture
+20. Testing strategy
+21. Future scalability
+22. Known limitations
+
+Do not begin large-scale implementation until the architecture is internally consistent.
+
+==================================================
+6. DATABASE SCHEMA
+==================================================
+
+Design a normalized PostgreSQL schema.
+
+At minimum include:
+
+companies
+
+profiles
+
+user_company_roles
+
+business_partners
+
+service_orders
+
+billing_schedules
+
+invoices
+
+payments
+
+documents
+
+document_access
+
+client_users
+
+client_company_memberships
+
+reminders
+
+audit_logs
+
+You may introduce additional supporting tables if genuinely required.
+
+Use UUID primary keys.
+
+Use proper foreign keys.
+
+Use indexes for common queries.
+
+Use appropriate unique constraints.
+
+Use timestamps.
+
+Use status fields where appropriate.
+
+Do not duplicate derived financial values unnecessarily.
+
+==================================================
+7. COMPANIES
+==================================================
+
+companies:
+
+- id
+- company_code
+- legal_name
+- display_name
+- gstin
+- pan
+- cin
+- registered_address
+- city
+- state
+- pincode
+- email
+- phone
+- logo_url
+- status
+- created_at
+- updated_at
+
+Statuses:
+
+ACTIVE
+INACTIVE
+ARCHIVED
+
+==================================================
+8. INTERNAL USERS
+==================================================
+
+Use Google OAuth.
+
+profiles:
+
+- id
+- full_name
+- email
+- avatar_url
+- status
+- created_at
+- updated_at
+
+Do not store passwords if Google OAuth is used.
+
+==================================================
+9. INTERNAL COMPANY ROLES
+==================================================
+
+user_company_roles:
+
+- id
+- user_id
+- company_id
+- role
+- status
+- created_at
+- updated_at
+
+Roles:
+
+GROUP_ADMIN
+COMPANY_ADMIN
+FINANCE
+STAFF
+VIEWER
+
+GROUP_ADMIN:
+- Manage authorized companies
+- View consolidated group reports
+- Manage users
+- Manage company configuration
+
+COMPANY_ADMIN:
+- Manage assigned company
+- Manage employees/permissions where authorized
+- Manage business records
+
+FINANCE:
+- Invoices
+- Payments
+- Receivables
+- Reports
+
+STAFF:
+- Service orders
+- Billing schedules
+- Documents
+- Operational records according to permission
+
+VIEWER:
+- Read-only
+
+Do not rely on frontend role checks.
+Authorization must be enforced server-side and at the database/storage level wherever possible.
+
+==================================================
+10. BUSINESS PARTNERS
+==================================================
+
+Create business_partners:
+
+- id
+- company_id
+- partner_code
+- partner_type
+- company_name
+- contact_person
+- email
+- phone
+- gstin
+- pan
+- address
+- city
+- state
+- pincode
+- payment_terms_days
+- notes
+- status
+- created_at
+- updated_at
+
+partner_type:
+
+CLIENT
+VENDOR
+BOTH
+
+Do not use the term "vendor" for every external organization.
+
+==================================================
+11. SERVICE ORDERS
+==================================================
+
+service_orders:
+
+- id
+- company_id
+- business_partner_id
+- order_number
+- service_description
+- start_date
+- end_date
+- contract_value
+- billing_frequency
+- billing_day
+- payment_terms_days
+- status
+- notes
+- created_by
+- created_at
+- updated_at
+
+Billing frequencies:
+
+MONTHLY
+QUARTERLY
+YEARLY
+ONE_TIME
+CUSTOM
+
+Statuses:
+
+DRAFT
+ACTIVE
+PAUSED
+COMPLETED
+EXPIRED
+CANCELLED
+
+A service order must belong to a company and business partner.
+
+==================================================
+12. BILLING SCHEDULE
+==================================================
+
+billing_schedules:
+
+- id
+- company_id
+- service_order_id
+- billing_period
+- expected_bill_date
+- status
+- invoice_id nullable
+- reminder_sent_at
+- created_at
+- updated_at
+
+Statuses:
+
+UPCOMING
+DUE
+MISSING
+UPLOADED
+SKIPPED
+CANCELLED
+
+For recurring monthly service orders, automatically generate billing schedules.
+
+Do not create duplicates.
+
+If a bill has not been uploaded by the expected date, generate an internal reminder.
+
+==================================================
+13. INVOICES
+==================================================
+
+invoices:
+
+- id
+- company_id
+- business_partner_id
+- service_order_id nullable
+- billing_schedule_id nullable
+- invoice_number
+- invoice_date
+- billing_period
+- due_date
+- subtotal
+- gst_amount
+- total_amount
+- currency
+- notes
+- status
+- created_by
+- created_at
+- updated_at
+
+Default currency:
+INR
+
+Statuses:
+
+DRAFT
+ISSUED
+PARTIALLY_PAID
+PAID
+OVERDUE
+CANCELLED
+ARCHIVED
+
+Invoice uniqueness must be scoped appropriately to the company.
+
+==================================================
+14. PAYMENTS
+==================================================
+
+payments:
+
+- id
+- company_id
+- invoice_id
+- payment_date
+- amount
+- payment_reference
+- payment_mode
+- bank_name
+- notes
+- created_by
+- created_at
+- updated_at
+
+Payment modes:
+
+BANK_TRANSFER
+NEFT
+RTGS
+IMPS
+UPI
+CHEQUE
+CASH
+OTHER
+
+A payment must belong to an invoice.
+
+Validate that payment.company_id matches invoice.company_id.
+
+==================================================
+15. OUTSTANDING CALCULATION
+==================================================
+
+Do NOT treat manually entered outstanding amount as the source of truth.
+
+Calculate:
+
+Outstanding =
+Invoice Total
+-
+Sum of valid payments
+
+Example:
+
+Invoice = ₹12,50,000
+Payment 1 = ₹8,00,000
+Outstanding = ₹4,50,000
+
+Payment 2 = ₹4,50,000
+Outstanding = ₹0
+Status = PAID
+
+Support:
+- Full payments
+- Partial payments
+- Multiple payments
+
+Handle overpayments explicitly.
+
+If V1 does not support overpayments, reject them with a clear error.
+
+==================================================
+16. DOCUMENT MANAGEMENT
+==================================================
+
+Documents are extremely important.
+
+Store financial/business files in PRIVATE object storage.
+
+Supported initial file types:
+
+PDF
+JPG/JPEG
+PNG
+
+Documents include:
+
+SERVICE_ORDER
+INVOICE
+PAYMENT_PROOF
+RECEIPT
+CONTRACT
+STATEMENT
+OTHER
+
+documents:
+
+- id
+- company_id
+- entity_type
+- entity_id
+- document_type
+- file_name
+- storage_path
+- mime_type
+- file_size
+- file_hash
+- uploaded_by
+- uploaded_at
+
+Do NOT use public storage for financial documents.
+
+Do NOT expose storage credentials to the browser.
+
+Use authorized access and signed/temporary URLs.
+
+==================================================
+17. DOCUMENT STORAGE STRUCTURE
+==================================================
+
+Use a logical private structure such as:
+
+business-documents/
+  companies/
+    {company_uuid}/
+      service-orders/
+        {service_order_uuid}/
+      invoices/
+        {invoice_uuid}/
+      payments/
+        {payment_uuid}/
+      contracts/
+        {contract_uuid}/
+
+Do not rely on folder names for authorization.
+
+Authorization must be enforced through database/storage policies.
+
+Use generated safe filenames.
+
+Do not trust original filenames.
+
+Validate:
+- MIME type
+- extension
+- file size
+- authenticated uploader
+- company ownership
+- entity ownership
+
+Calculate file hashes where practical to detect duplicate uploads.
+
+==================================================
+18. CLIENT PORTAL
+==================================================
+
+Create a separate external client experience.
+
+Clients can see ONLY their own organization's authorized data.
+
+client_users:
+
+- id
+- user_id
+- created_at
+- updated_at
+
+client_company_memberships:
+
+- id
+- user_id
+- business_partner_id
+- role
+- status
+- created_at
+- updated_at
+
+Client roles:
+
+CLIENT_ADMIN
+CLIENT_USER
+CLIENT_VIEWER
+
+Only CLIENT or BOTH business partners can have client portal access.
+
+==================================================
+19. CLIENT ISOLATION
+==================================================
+
+This is a CRITICAL security requirement.
+
+Example:
+
+Client A:
+ABC Infrastructure
+
+Client B:
+XYZ Infrastructure
+
+ABC user must NEVER be able to access:
+- XYZ invoices
+- XYZ payments
+- XYZ documents
+- XYZ service orders
+- XYZ statements
+
+Even if they:
+- modify a URL
+- change an ID
+- call an API manually
+- use browser developer tools
+- guess a storage path
+
+The system must reject unauthorized access.
+
+Do not depend on frontend hiding.
+
+Use database authorization/RLS plus server-side authorization.
+
+==================================================
+20. CLIENT DOCUMENT SHARING
+==================================================
+
+Create:
+
+document_access:
+
+- id
+- document_id
+- client_business_partner_id
+- access_level
+- shared_by
+- shared_at
+- expires_at nullable
+- status
+
+Access levels:
+
+VIEW
+DOWNLOAD
+
+Internal users explicitly choose whether a document is visible to a client.
+
+A client must not automatically see every internal document associated with an invoice.
+
+==================================================
+21. CLIENT-SAFE DATA
+==================================================
+
+Never expose complete internal database objects to clients.
+
+Clients may see:
+
+- Invoice number
+- Invoice date
+- Billing period
+- Due date
+- Amount
+- GST if appropriate
+- Payment status
+- Payment history
+- Outstanding
+- Authorized service-order information
+- Shared documents
+- Statements
+
+Clients must NOT see:
+
+- Internal costs
+- Margins
+- Internal notes
+- Internal vendors
+- Employee data
+- Internal audit logs
+- Internal approval information
+- Internal financial analysis
+
+==================================================
+22. CLIENT DASHBOARD
+==================================================
+
+Create a clean dashboard:
+
+Welcome, [Client Organization]
+
+Total Billed
+Total Paid
+Total Outstanding
+Overdue
+
+Outstanding invoices
+Recent payments
+Recent invoices
+Recently shared documents
+
+Example:
+
+Total Billed:
+₹48,50,000
+
+Paid:
+₹39,00,000
+
+Outstanding:
+₹9,50,000
+
+==================================================
+23. CLIENT INVOICE VIEW
+==================================================
+
+Client can view:
+
+Invoice number
+Service order
+Billing period
+Invoice date
+Due date
+Subtotal
+GST
+Total
+Payments
+Outstanding
+Status
+
+Actions:
+
+View invoice
+Download invoice if authorized
+
+==================================================
+24. CLIENT STATEMENTS
+==================================================
+
+Allow statements based on a selected date range.
+
+Statement:
+
+Opening Balance
+Invoices
+Payments
+Closing Balance
+
+Generate professional PDF.
+
+Never expose internal-only information.
+
+==================================================
+25. CLIENT INVITATIONS
+==================================================
+
+Authorized internal users can invite client users.
+
+Fields:
+
+Client organization
+Name
+Email
+Role
+
+Invitation process:
+
+Internal user creates invitation
+→ email sent
+→ user authenticates
+→ account associated with selected client organization
+
+Do not allow client users to choose arbitrary organizations.
+
+==================================================
+26. REMINDERS
+==================================================
+
+Create reminders:
+
+- BILL_UPLOAD
+- PAYMENT_DUE
+- PAYMENT_OVERDUE
+- SERVICE_ORDER_EXPIRY
+
+reminders:
+
+- id
+- company_id
+- reminder_type
+- entity_type
+- entity_id
+- scheduled_for
+- sent_at
+- status
+- recipient
+- created_at
+- updated_at
+
+V1:
+- Email
+- In-app notifications
+
+Do NOT implement WhatsApp in V1.
+
+==================================================
+27. MONTHLY BILL REMINDERS
+==================================================
+
+For monthly service orders:
+
+Automatically create billing schedules.
+
+Example:
+
+Service Order:
+Monthly
+Billing day:
+5th
+
+Generate:
+August
+September
+October
+November
+etc.
+
+If invoice is not uploaded:
+send reminder.
+
+Once invoice is uploaded:
+mark billing schedule as UPLOADED.
+
+Do not repeatedly remind after successful upload.
+
+==================================================
+28. PAYMENT REMINDERS
+==================================================
+
+Allow configurable reminders:
+
+Before due date
+On due date
+After due date
+
+Example:
+
+"Invoice INV-2026-081 is due on 31 August 2026."
+
+Overdue:
+
+"Invoice INV-2026-081 is overdue. Outstanding amount: ₹4,50,000."
+
+==================================================
+29. AUDIT LOG
+==================================================
+
+Create audit_logs:
+
+- id
+- company_id nullable
+- user_id
+- actor_type
+- action
+- entity_type
+- entity_id
+- metadata
+- created_at
+
+Actor types:
+
+INTERNAL_USER
+CLIENT_USER
+SYSTEM
+
+Log important actions:
+
+- User invitations
+- Company membership changes
+- Partner creation/update
+- Service order creation/update
+- Invoice creation/update/cancellation
+- Payment creation/update
+- Document upload
+- Document sharing
+- Document access where practical
+- Permission changes
+- Reminder creation/sending
+
+Normal users must not be able to edit audit logs.
+
+==================================================
+30. INTERNAL DASHBOARD
+==================================================
+
+Group Admin dashboard:
+
+Total Group Billing
+Total Group Collections
+Total Group Outstanding
+Total Group Overdue
+
+Company-wise:
+
+Company
+Billed
+Received
+Pending
+Overdue
+
+Company Admin dashboard:
+
+Total Billed
+Total Received
+Total Pending
+Total Overdue
+Missing Bills
+Upcoming Bills
+Overdue Invoices
+Recent Payments
+
+==================================================
+31. COMPANY SWITCHER
+==================================================
+
+Users with access to multiple companies should have a company switcher.
+
+Example:
+
+LIFT & SHIFT
+Sister Company A
+Sister Company B
+ALL COMPANIES
+
+ALL COMPANIES is only available to authorized users.
+
+Changing company context must affect all relevant data.
+
+Backend must enforce company context.
+
+==================================================
+32. INTERNAL NAVIGATION
+==================================================
+
+Dashboard
+Companies
+Business Partners
+Service Orders
+Billing Calendar
+Invoices
+Payments
+Receivables
+Documents
+Reminders
+Reports
+Audit Logs
+Settings
+
+==================================================
+33. BUSINESS PARTNER PAGE
+==================================================
+
+Show:
+
+Partner name
+Type
+Contact
+GSTIN
+PAN
+Payment terms
+Service orders
+Invoices
+Payments
+Outstanding
+Documents
+Client portal status
+
+==================================================
+34. SERVICE ORDER PAGE
+==================================================
+
+Show:
+
+Order number
+Client
+Service description
+Dates
+Contract value
+Billing frequency
+Billing day
+Payment terms
+Status
+Billing schedules
+Invoices
+Documents
+
+Actions:
+
+Upload service order
+Edit
+Pause
+Complete
+Archive
+
+==================================================
+35. BILLING CALENDAR
+==================================================
+
+Create:
+- Monthly view
+- List view
+
+Display:
+
+Company
+Client
+Service order
+Billing period
+Expected bill date
+Status
+Invoice
+Outstanding
+
+Filters:
+Company
+Client
+Month
+Status
+
+==================================================
+36. INVOICE LIST
+==================================================
+
+Columns:
+
+Invoice Number
+Company
+Client
+Service Order
+Invoice Date
+Due Date
+Total
+Paid
+Outstanding
+Status
+
+Filters:
+Company
+Client
+Date
+Status
+Overdue
+Service order
+
+Search:
+Invoice number
+Client
+Service order
+
+==================================================
+37. PAYMENT LIST
+==================================================
+
+Columns:
+
+Payment Date
+Company
+Client
+Invoice
+Amount
+Payment Reference
+Payment Mode
+Created By
+
+==================================================
+38. RECEIVABLES / AGING
+==================================================
+
+Create aging buckets:
+
+Current
+1–30 Days
+31–60 Days
+61–90 Days
+90+ Days
+
+Display:
+
+Client
+Invoice
+Due Date
+Invoice Amount
+Paid
+Outstanding
+Days Overdue
+Aging Bucket
+
+Allow:
+CSV export
+PDF export
+
+==================================================
+39. REPORTS
+==================================================
+
+V1:
+
+Invoice Register
+Payment Register
+Outstanding Receivables
+Aging Report
+Client-wise Billing
+Service-order-wise Billing
+Monthly Billing Summary
+Company-wise Group Summary
+
+All reports must respect permissions.
+
+==================================================
+40. SEARCH
+==================================================
+
+Implement authorized global search across:
+
+Companies
+Business partners
+Service orders
+Invoice numbers
+Payments
+Documents
+
+Search results must obey authorization.
+
+==================================================
+41. UI / DESIGN
+==================================================
+
+Design should feel like a premium B2B corporate application.
+
+Style:
+
+- Clean
+- Professional
+- Modern
+- Minimal
+- Corporate
+- Highly readable
+- Responsive
+- Desktop-first
+
+Avoid:
+- Gaming UI
+- Excessive gradients
+- Cartoon graphics
+- Excessive animation
+- Unnecessary glassmorphism
+
+Use subtle animation only where useful.
+
+The platform should feel appropriate for an established Indian business group.
+
+Currency:
+INR
+
+Date format:
+Indian-friendly format
+
+Use Indian numbering conventions where appropriate:
+₹12,50,000
+
+==================================================
+42. BRANDING
+==================================================
+
+The product should support company-specific branding.
+
+Do not hard-code:
+"Since 1968"
+
+Do not add:
+TM symbols
+
+Do not hard-code historical slogans.
+
+Branding should come from company configuration.
+
+The LIFT & SHIFT logo should be configurable rather than embedded permanently in code.
+
+==================================================
+43. SECURITY
+==================================================
+
+Treat all financial and business information as confidential.
+
+Implement:
+
+- Authentication
+- Authorization
+- RBAC
+- Company-level tenant isolation
+- Client-level isolation
+- RLS
+- Private storage
+- Signed URLs
+- Server-side validation
+- Input validation
+- File validation
+- Rate limiting where appropriate
+- Secure headers
+- CSRF protection where applicable
+- Secure cookies
+- Error sanitization
+- Audit logging
+
+Never expose:
+- Database credentials
+- Service-role keys
+- OAuth secrets
+- Storage secrets
+
+Never commit secrets to Git.
+
+Create:
+.env.example
+
+with variable names only.
+
+==================================================
+44. DATA INTEGRITY
+==================================================
+
+Use:
+
+- Foreign keys
+- Unique constraints
+- Check constraints
+- Transactions
+- Server-side validation
+
+Financial operations such as recording payments should be transactional.
+
+Do not allow orphaned records.
+
+Do not allow a payment belonging to Company A to be attached to an invoice belonging to Company B.
+
+==================================================
+45. SOFT DELETE
+==================================================
+
+Avoid permanent deletion of financial records.
+
+Use:
+
+ARCHIVED
+CANCELLED
+INACTIVE
+
+where appropriate.
+
+For destructive actions, require:
+- Confirmation
+- Authorization
+- Audit event
+
+==================================================
+46. DUPLICATE DETECTION
+==================================================
+
+Prevent duplicate invoice numbers within the appropriate company scope.
+
+Use document hashes to help identify duplicate file uploads.
+
+Show user-friendly warnings.
+
+==================================================
+47. OCR / AI
+==================================================
+
+DO NOT implement OCR in V1.
+
+Invoice data will initially be entered manually.
+
+However, architect the system so future OCR can populate:
+
+- Client
+- Invoice number
+- Invoice date
+- Due date
+- Amount
+- GST
+
+without requiring a major database redesign.
+
+==================================================
+48. DO NOT BUILD IN V1
+==================================================
+
+Do NOT implement:
+
+WhatsApp API
+Bank APIs
+Automatic bank reconciliation
+Tally integration
+GST filing
+Payment gateway
+AI chatbot
+AI OCR
+Mobile app
+Payroll
+Inventory
+Complex accounting ledger
+Expense management
+
+Architecture may be future-ready for them.
+
+==================================================
+49. BACKUPS
+==================================================
+
+Use a database/storage architecture compatible with:
+
+- Automated PostgreSQL backups
+- Storage backups
+- Disaster recovery
+- Restore testing
+
+Do not store business documents only on the local machine.
+
+Database = business metadata source of truth.
+
+Object storage = uploaded file source of truth.
+
+==================================================
+50. TESTING
+==================================================
+
+Create automated tests where practical.
+
+At minimum test:
+
+Authentication
+Authorization
+Company isolation
+Client isolation
+Invoice creation
+Payment calculation
+Partial payment
+Full payment
+Overpayment handling
+Document upload
+Document authorization
+Client document sharing
+Monthly billing reminder
+Payment reminders
+Reports
+Exports
+
+CRITICAL TEST:
+
+Create:
+
+Company A
+Company B
+
+Create:
+Invoice A
+Invoice B
+
+Create:
+User A with access only to Company A.
+
+Verify User A cannot access:
+Invoice B
+Payment B
+Document B
+Service Order B
+
+Then create:
+
+Client A
+Client B
+
+Verify Client A cannot access any Client B record.
+
+Do the same through:
+- UI
+- API/server endpoints
+- direct record lookup
+- document access
+
+==================================================
+51. SECURITY TESTING
+==================================================
+
+Before declaring V1 complete, perform an authorization review.
+
+Test:
+- IDOR attempts
+- URL manipulation
+- Unauthorized API requests
+- Cross-company access
+- Cross-client access
+- Storage path guessing
+- Unauthorized downloads
+- Role escalation
+- Client-to-internal access
+- Internal user without required role
+- Invalid company_id supplied by client
+
+Do not consider the application production-ready until these are addressed.
+
+==================================================
+52. DEVELOPMENT PROCESS
+==================================================
+
+Work incrementally.
+
+PHASE 1:
+Architecture
+Database
+Authentication
+RLS
+Storage
+Roles
+Company isolation
+
+PHASE 2:
+Companies
+Business partners
+Service orders
+
+PHASE 3:
+Billing schedules
+Invoices
+Payments
+Outstanding calculations
+
+PHASE 4:
+Documents
+Reminders
+Audit logs
+
+PHASE 5:
+Client portal
+
+PHASE 6:
+Reports
+Exports
+
+PHASE 7:
+UI refinement
+Testing
+Security hardening
+Production readiness
+
+Do not build all features blindly in one pass.
+
+After each major phase:
+- run tests
+- inspect errors
+- fix them
+- update documentation
+- verify security
+
+==================================================
+53. DOCUMENTATION
+==================================================
+
+Create:
+
+README.md
+ARCHITECTURE.md
+SECURITY.md
+DATABASE.md
+DEPLOYMENT.md
+.env.example
+
+README should explain:
+- Project
+- Setup
+- Local development
+- Environment variables
+- Database setup
+- Storage setup
+- Authentication setup
+- Testing
+- Deployment
+
+==================================================
+54. GITHUB STRUCTURE
+==================================================
+
+Keep code modular.
+
+Do not create one huge source file.
+
+Use logical separation such as:
+
+app/
+components/
+lib/
+services/
+types/
+schemas/
+hooks/
+database/
+tests/
+docs/
+
+Use clear naming.
+
+==================================================
+55. PRODUCTION READINESS
+==================================================
+
+Do not claim the application is production-ready simply because the UI works.
+
+Before saying V1 is complete, verify:
+
+- Authentication works
+- Authorization works
+- RLS works
+- Storage is private
+- Client isolation works
+- Company isolation works
+- Payments calculate correctly
+- Documents are correctly associated
+- Audit logs work
+- Backups are configured/understood
+- Secrets are protected
+- Errors are handled
+- Tests pass
+- No obvious security vulnerabilities remain
+
+==================================================
+56. FIRST DELIVERABLE
+==================================================
+
+Your FIRST deliverable is NOT a giant UI.
+
+First produce:
+
+1. ARCHITECTURE.md
+2. Database schema
+3. ER diagram or equivalent
+4. Authentication design
+5. Authorization model
+6. RLS design
+7. Storage design
+8. Role/permission matrix
+9. Client isolation model
+10. Security threat model
+11. Implementation plan
+
+Then implement Phase 1.
+
+Do not skip architecture.
+
+==================================================
+57. IMPORTANT PRODUCT PRINCIPLE
+==================================================
+
+This system will eventually contain REAL business data.
+
+Therefore:
+
+Correctness > speed
+Security > visual polish
+Data integrity > convenience
+Authorization > frontend filtering
+Private storage > public links
+Auditability > silent changes
+Maintainability > clever code
+
+==================================================
+58. FINAL PRODUCT VISION
+==================================================
+
+The final product should feel like:
+
+"L&S Business Hub"
+
+A centralized business platform for:
+
+LIFT & SHIFT
++
+Sister Companies
+
+with:
+
+Internal Business Portal
++
+Secure Client Portal
+
+Internal users manage:
+
+Companies
+Clients
+Vendors
+Service Orders
+Billing
+Invoices
+Payments
+Receivables
+Documents
+Reports
+Reminders
+
+Clients see:
+
+Their Service Orders
+Their Invoices
+Their Payments
+Their Outstanding Balance
+Their Statements
+Their Shared Documents
+
+No client should ever be able to see another client's data.
+
+No company should accidentally see another company's data.
+
+No unauthorized user should be able to access confidential documents.
+
+==================================================
+59. IMPORTANT INSTRUCTION TO MANUS
+==================================================
+
+Act as the senior engineering team responsible for this system.
+
+Do not blindly follow ambiguous requirements.
+
+If something is unclear:
+1. Identify the ambiguity.
+2. Make the safest reasonable assumption.
+3. Document the assumption.
+4. Continue without blocking unnecessarily.
+
+If you identify an architectural or security flaw in the requested design:
+- Explain it
+- Propose a safer solution
+- Implement the safer solution
+
+Do not generate fake security.
+
+Do not claim something is secure unless the relevant authorization and storage mechanisms actually enforce it.
+
+Do not use mock security checks in place of real authorization.
+
+Build the foundation first, then implement the application incrementally.
+
+The goal is not merely to create a beautiful dashboard.
+
+The goal is to build a reliable, secure, maintainable business system that LIFT & SHIFT can eventually use with real operational and financial data.

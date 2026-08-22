@@ -1,0 +1,77 @@
+name: l-and-s-business-hub
+
+services:
+  supabase:
+    image: supabase/cli:latest
+    working_dir: /workspace
+    entrypoint: ["/bin/bash", "/workspace/scripts/supabase-entrypoint.sh"]
+    volumes:
+      - ./:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+      - supabase-runtime:/shared
+      - supabase-data:/root/.local/share/supabase
+    ports:
+      - "54321:54321" # Supabase API
+      - "54322:54322" # PostgreSQL
+      - "54323:54323" # Supabase Studio
+      - "54324:54324" # Inbucket email UI
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /shared/supabase-ready && curl -fsS http://127.0.0.1:54321/rest/v1/ >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 20s
+
+  next:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace
+    command: ["/bin/bash", "-lc", "source /workspace/scripts/load-supabase-env.sh && npm run dev -- -H 0.0.0.0"]
+    volumes:
+      - ./:/workspace
+      - node-modules:/workspace/node_modules
+      - supabase-runtime:/shared:ro
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/internal >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 15s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      supabase:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_SUPABASE_URL: http://host.docker.internal:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-} # populated from /shared/supabase.env by the startup command
+
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace
+    command: ["/bin/bash", "-lc", "source /workspace/scripts/load-supabase-env.sh && npm run test:integration"]
+    volumes:
+      - ./:/workspace:ro
+      - node-modules:/workspace/node_modules:ro
+      - supabase-runtime:/shared:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      supabase:
+        condition: service_healthy
+      next:
+        condition: service_healthy
+    environment:
+      NODE_ENV: test
+      TEST_BASE_URL: http://host.docker.internal:3000
+
+volumes:
+  supabase-runtime:
+  supabase-data:
+  node-modules:

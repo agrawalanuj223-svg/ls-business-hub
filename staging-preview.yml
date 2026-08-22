@@ -1,0 +1,126 @@
+name: Staging Preview and Integration Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  static-checks:
+    name: Static checks and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Phase 1 migration and demo-data files
+        shell: bash
+        run: |
+          test -f supabase/migrations/202608220000_phase1_schema.sql
+          test -f supabase/migrations/202608220001_phase1_security.sql
+          test -f supabase/seed/001_demo_seed.sql
+          grep -q 'DEMO/SAMPLE' supabase/seed/001_demo_seed.sql
+          test "$(grep -Eic '^[[:space:]]*insert into documents|^[[:space:]]*insert into storage\.objects' supabase/seed/001_demo_seed.sql || true)" -eq 0
+
+      - name: Build Next.js application
+        run: npm run build
+
+  integration-tests:
+    name: Live RLS and API integration tests
+    needs: static-checks
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TEST_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Phase 4 integration suite against isolated staging
+        run: npm run test:integration
+
+  deploy-preview:
+    name: Deploy Vercel staging preview
+    needs: [static-checks, integration-tests]
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Pull Vercel Preview configuration
+        run: npx vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Build Vercel Preview artifact
+        run: npx vercel build --token="$VERCEL_TOKEN"
+
+      - name: Deploy Vercel Preview
+        id: deploy
+        run: |
+          url=$(npx vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "## Vercel staging preview" >> "$GITHUB_STEP_SUMMARY"
+          echo "Preview URL: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Confirm deployment output
+        run: test -n "${{ steps.deploy.outputs.url }}"
+
+  fork-pr-note:
+    name: Explain protected-secret behavior for fork PRs
+    needs: static-checks
+    if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add workflow summary
+        run: |
+          {
+            echo "## Fork pull request"
+            echo "Static checks ran. Live Supabase integration tests and Vercel Preview deployment are skipped because repository secrets are not exposed to forked pull requests."
+            echo "A maintainer can re-run the workflow after reviewing the change if the repository policy permits access to the staging secrets."
+          } >> "$GITHUB_STEP_SUMMARY"

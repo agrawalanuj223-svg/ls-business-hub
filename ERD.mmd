@@ -1,0 +1,135 @@
+erDiagram
+    AUTH_USERS ||--|| PROFILES : has
+    PROFILES ||--o{ USER_COMPANY_ROLES : receives
+    COMPANIES ||--o{ USER_COMPANY_ROLES : grants
+    COMPANIES ||--o{ BUSINESS_PARTNERS : owns
+    BUSINESS_PARTNERS ||--o{ SERVICE_ORDERS : engages
+    SERVICE_ORDERS ||--o{ BILLING_SCHEDULES : generates
+    BUSINESS_PARTNERS ||--o{ INVOICES : billed
+    SERVICE_ORDERS ||--o{ INVOICES : supports
+    BILLING_SCHEDULES o|--o| INVOICES : links
+    INVOICES ||--o{ PAYMENTS : receives
+    COMPANIES ||--o{ DOCUMENTS : owns
+    DOCUMENTS ||--o{ DOCUMENT_ACCESS : shares
+    BUSINESS_PARTNERS ||--o{ DOCUMENT_ACCESS : receives
+    PROFILES ||--o{ CLIENT_USERS : extends
+    CLIENT_USERS ||--o{ CLIENT_COMPANY_MEMBERSHIPS : has
+    BUSINESS_PARTNERS ||--o{ CLIENT_COMPANY_MEMBERSHIPS : represents
+    BUSINESS_PARTNERS ||--o{ CLIENT_INVITATIONS : invited
+    COMPANIES ||--o{ REMINDERS : schedules
+    COMPANIES ||--o{ AUDIT_LOGS : records
+    PROFILES ||--o{ AUDIT_LOGS : acts
+
+    AUTH_USERS {
+      uuid id PK
+    }
+    PROFILES {
+      uuid id PK
+      text full_name
+      text email
+      text status
+    }
+    COMPANIES {
+      uuid id PK
+      text company_code UK
+      text legal_name
+      text status
+    }
+    USER_COMPANY_ROLES {
+      uuid id PK
+      uuid user_id FK
+      uuid company_id FK
+      internal_role role
+      membership_status status
+    }
+    BUSINESS_PARTNERS {
+      uuid id PK
+      uuid company_id FK
+      text partner_code
+      partner_type partner_type
+      text company_name
+    }
+    SERVICE_ORDERS {
+      uuid id PK
+      uuid company_id FK
+      uuid business_partner_id FK
+      text order_number
+      billing_frequency billing_frequency
+      service_order_status status
+    }
+    BILLING_SCHEDULES {
+      uuid id PK
+      uuid company_id FK
+      uuid service_order_id FK
+      text billing_period
+      date expected_bill_date
+      billing_schedule_status status
+    }
+    INVOICES {
+      uuid id PK
+      uuid company_id FK
+      uuid business_partner_id FK
+      uuid service_order_id FK
+      uuid billing_schedule_id FK
+      text invoice_number
+      numeric total_amount
+      invoice_status status
+    }
+    PAYMENTS {
+      uuid id PK
+      uuid company_id FK
+      uuid invoice_id FK
+      numeric amount
+      date payment_date
+      payment_mode payment_mode
+    }
+    DOCUMENTS {
+      uuid id PK
+      uuid company_id FK
+      text entity_type
+      uuid entity_id
+      document_type document_type
+      text storage_path UK
+    }
+    DOCUMENT_ACCESS {
+      uuid id PK
+      uuid document_id FK
+      uuid client_business_partner_id FK
+      document_access_level access_level
+      document_access_status status
+    }
+    CLIENT_USERS {
+      uuid id PK
+      uuid user_id FK
+    }
+    CLIENT_COMPANY_MEMBERSHIPS {
+      uuid id PK
+      uuid user_id FK
+      uuid business_partner_id FK
+      client_role role
+      membership_status status
+    }
+    CLIENT_INVITATIONS {
+      uuid id PK
+      uuid business_partner_id FK
+      text email
+      client_role role
+      timestamptz expires_at
+    }
+    REMINDERS {
+      uuid id PK
+      uuid company_id FK
+      reminder_type reminder_type
+      text entity_type
+      uuid entity_id
+      reminder_status status
+    }
+    AUDIT_LOGS {
+      uuid id PK
+      uuid company_id FK
+      uuid user_id FK
+      actor_type actor_type
+      text action
+      text entity_type
+      uuid entity_id FK
+    }
