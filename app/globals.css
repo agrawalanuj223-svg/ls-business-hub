@@ -1,9 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root { color-scheme: light; }
-* { box-sizing: border-box; }
-body { margin: 0; background: #f5f7fa; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-button, a { -webkit-tap-highlight-color: transparent; }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+@layer base {
+  body {
+    background-color: #f8fafc;
+    color: #1e293b;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+/* Lift & Shift Brand Theme Utilities */
+.bg-brand-yellow { background-color: #FFD233; }
+.text-brand-dark { color: #1a1a1a; }
+.border-brand-red { border-color: #e60000; }
+.bg-brand-red { background-color: #e60000; }
