@@ -18,7 +18,7 @@ export default function ClientPortalPage() {
       {/* Sidebar Navigation */}
       <aside className="w-full md:w-72 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800">
         <div className="p-5 border-b border-slate-800 bg-[#FFD233] flex items-center justify-center">
-          <img src="/logo.png" alt="Lift & Shift Logo" className="h-12 w-auto object-contain" />
+          <img src="/logo.jpg" alt="Lift & Shift Logo" className="h-12 w-auto object-contain" />
         </div>
         
         <nav className="flex-1 p-4 space-y-1 text-sm font-medium">
