@@ -17,14 +17,8 @@ export default function ClientPortalPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row antialiased">
       {/* Sidebar Navigation */}
       <aside className="w-full md:w-72 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800">
-        <div className="p-6 border-b border-slate-800 bg-[#FFD233] text-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="w-2.5 h-7 bg-red-600 rounded-xs"></div>
-            <div>
-              <h1 className="text-lg font-black tracking-wider uppercase italic">Lift & Shift</h1>
-              <p className="text-[10px] font-bold tracking-widest uppercase opacity-80">Business Hub</p>
-            </div>
-          </div>
+        <div className="p-5 border-b border-slate-800 bg-[#FFD233] flex items-center justify-center">
+          <img src="/logo.png" alt="Lift & Shift Logo" className="h-12 w-auto object-contain" />
         </div>
         
         <nav className="flex-1 p-4 space-y-1 text-sm font-medium">
