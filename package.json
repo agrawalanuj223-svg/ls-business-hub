@@ -8,6 +8,7 @@
     "test:integration": "vitest run tests/integration/phase4.security.test.ts"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "latest",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "@tanstack/react-query": "latest",
