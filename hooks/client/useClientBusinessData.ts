@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export function useClientInvoiceSummary() {
+export function useClientInvoiceSummary(orgId?: string) {
   const [data, setData] = useState({
     totalInvoices: 1,
     paidInvoices: 0,
@@ -34,7 +34,7 @@ export function useClientInvoiceSummary() {
   return { data, isLoading, isError };
 }
 
-export function useClientMemberships() {
+export function useClientMemberships(orgId?: string) {
   const [data, setData] = useState<any[]>([
     { id: "1", planName: "Standard Business Hub Tier", status: "Active", renewalDate: "2026-12-31" }
   ]);
